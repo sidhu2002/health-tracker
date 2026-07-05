@@ -90,8 +90,8 @@ class MainActivity : ComponentActivity() {
                     ) {
                         item {
                             Text(
-                                text = "HealthTracker OTA",
-                                color = Color(0xFF00E676),
+                                text = "HealthTracker 2.0",
+                                color = Color(0xFF00BFFF),
                                 style = MaterialTheme.typography.title2,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(bottom = 4.dp)
@@ -200,7 +200,7 @@ class MainActivity : ComponentActivity() {
                         }
                         item {
                             Text(
-                                text = "Version: 1.1.0-OTA",
+                                text = "Version: 2.0.0-OTA-Test",
                                 color = Color.Gray,
                                 style = MaterialTheme.typography.caption2,
                                 modifier = Modifier.padding(bottom = 24.dp)
