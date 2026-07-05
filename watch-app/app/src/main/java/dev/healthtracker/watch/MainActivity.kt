@@ -184,6 +184,20 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.fillMaxWidth(0.9f)
                             )
                         }
+                        item {
+                            Chip(
+                                onClick = {
+                                    lifecycleScope.launch {
+                                        status = "Checking for update..."
+                                        val result = OtaUpdater.checkAndUpdate(applicationContext)
+                                        status = result
+                                    }
+                                },
+                                label = { Text("Update App (OTA)") },
+                                colors = ChipDefaults.primaryChipColors(backgroundColor = Color(0xFFF57C00)),
+                                modifier = Modifier.fillMaxWidth(0.9f)
+                            )
+                        }
                     }
                 }
             }
