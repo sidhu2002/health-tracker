@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         item {
                             Text(
-                                text = "HealthTracker",
+                                text = "HealthTracker OTA",
                                 color = Color(0xFF00E676),
                                 style = MaterialTheme.typography.title2,
                                 fontWeight = FontWeight.Bold,
@@ -193,9 +193,17 @@ class MainActivity : ComponentActivity() {
                                         status = result
                                     }
                                 },
-                                label = { Text("Update App (OTA)") },
-                                colors = ChipDefaults.primaryChipColors(backgroundColor = Color(0xFFF57C00)),
-                                modifier = Modifier.fillMaxWidth(0.9f)
+                                label = { Text("Update App (OTA)", fontWeight = FontWeight.Medium) },
+                                colors = ChipDefaults.primaryChipColors(backgroundColor = Color(0xFFD84315)),
+                                modifier = Modifier.fillMaxWidth(0.9f).padding(bottom = 8.dp)
+                            )
+                        }
+                        item {
+                            Text(
+                                text = "Version: 1.1.0-OTA",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.caption2,
+                                modifier = Modifier.padding(bottom = 24.dp)
                             )
                         }
                     }
