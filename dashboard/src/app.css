@@ -1,0 +1,16 @@
+@import 'uplot/dist/uPlot.min.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: system-ui, -apple-system, 'SF Pro Text', 'Segoe UI', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.safe-top { padding-top: max(env(safe-area-inset-top), 1rem); }
+.safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 1rem); }
+
+.uplot { color: inherit; }
+.u-legend { color: inherit; }

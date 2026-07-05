@@ -1,0 +1,24 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "dev:lan": "wrangler dev --ip 0.0.0.0 --port 8787",
+    "db:init": "wrangler d1 execute health --local --file=schema.sql",
+    "db:seed": "wrangler d1 execute health --local --file=seed.sql",
+    "db:query": "wrangler d1 execute health --local --command",
+    "deploy": "wrangler deploy",
+    "deploy:db": "wrangler d1 execute health --remote --file=schema.sql"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260702.1",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.106.0"
+  }
+}

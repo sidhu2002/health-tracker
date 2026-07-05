@@ -1,0 +1,4 @@
+name = "health-dashboard"
+pages_build_output_dir = ".svelte-kit/cloudflare"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]

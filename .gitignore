@@ -1,0 +1,14 @@
+node_modules/
+.svelte-kit/
+build/
+.wrangler/
+.dev.vars
+.env
+.env.*
+!.env.example
+.DS_Store
+watch-app/build/
+watch-app/.gradle/
+watch-app/local.properties
+watch-app/app/build/
+.idea/

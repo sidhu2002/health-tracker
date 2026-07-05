@@ -1,0 +1,32 @@
+name = "health-backend"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+
+# Bind the Worker to a custom domain. Cloudflare provisions SSL automatically.
+routes = [
+  { pattern = "health-api.siddeshwar.com", custom_domain = true }
+]
+
+# D1 database binding.
+#   Local: wrangler auto-creates a SQLite file under .wrangler/state/ — database_id is ignored.
+#   Remote (production): user runs `wrangler d1 create health`, copies the printed database_id
+#   into the value below, then `wrangler deploy`.
+[[d1_databases]]
+binding = "DB"
+database_name = "health"
+database_id = "b5ddf8d5-4b51-4a8e-bd1d-d30bc13839be"
+
+# WATCH_TOKEN is set as a Cloudflare secret in production:
+#   wrangler secret put WATCH_TOKEN
+#
+# For LOCAL dev (`wrangler dev`), wrangler reads a `.dev.vars` file (gitignored) or you can
+# temporarily add [vars] WATCH_TOKEN here. We intentionally omit it from wrangler.toml
+# so deploys don't overwrite the production secret.
+
+[dev]
+ip = "0.0.0.0"
+port = 8787
+
+# Observability: Cloudflare's built-in logs work by default. No config needed.
+[observability]
+enabled = true
