@@ -85,6 +85,8 @@ class MainActivity : ComponentActivity() {
                     checkAndRequestPermissions()
                     // Check for updates conditionally
                     updateAvailable = OtaUpdater.isUpdateAvailable(applicationContext)
+                    // Initial load of last sync time
+                    lastUpload = getLastSyncTime()
                 }
 
                 Box(
@@ -209,5 +211,13 @@ class MainActivity : ComponentActivity() {
                 currentStatus = "Error: ${e.message}"
             }
         }
+    }
+
+    private fun getLastSyncTime(): String {
+        val prefs = getSharedPreferences("health_prefs", android.content.Context.MODE_PRIVATE)
+        val time = prefs.getLong("last_sync_time", 0L)
+        if (time == 0L) return "-"
+        val format = java.text.SimpleDateFormat("MMM dd, HH:mm", java.util.Locale.getDefault())
+        return format.format(java.util.Date(time))
     }
 }

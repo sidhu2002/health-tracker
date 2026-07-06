@@ -60,6 +60,8 @@ class UploadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
             http.newCall(req).execute().use { resp ->
                 if (resp.isSuccessful) {
                     Log.i(TAG, "uploaded ${batch.size} samples: HTTP ${resp.code}")
+                    val prefs = applicationContext.getSharedPreferences("health_prefs", Context.MODE_PRIVATE)
+                    prefs.edit().putLong("last_sync_time", System.currentTimeMillis()).apply()
                     Result.success()
                 } else {
                     Log.w(TAG, "upload rejected: HTTP ${resp.code}")
