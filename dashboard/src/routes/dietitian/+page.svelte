@@ -8,6 +8,9 @@
   let parsing = false;
   let error: string | null = null;
 
+  // UI State
+  let activeTab: 'ai' | 'manual' = 'ai';
+
   // Manual entry state
   let mealName = '';
   let mealCalories = 0;
@@ -202,10 +205,11 @@
         <h2 class="card-title text-secondary mb-4">Log Meal</h2>
         
         <div class="tabs tabs-boxed bg-base-300/50 mb-4">
-          <a class="tab tab-active">AI Log</a>
-          <a class="tab">Manual</a>
+          <button class="tab {activeTab === 'ai' ? 'tab-active' : ''}" on:click={() => activeTab = 'ai'}>AI Log</button>
+          <button class="tab {activeTab === 'manual' ? 'tab-active' : ''}" on:click={() => activeTab = 'manual'}>Manual</button>
         </div>
 
+        {#if activeTab === 'ai'}
         <!-- AI Logging Form -->
         <div class="form-control w-full gap-4">
           <div>
@@ -231,6 +235,34 @@
             {/if}
           </button>
         </div>
+        {:else}
+        <!-- Manual Logging Form -->
+        <div class="form-control w-full gap-4">
+          <div>
+            <label class="label"><span class="label-text">Meal Name</span></label>
+            <input type="text" class="input input-bordered w-full" bind:value={mealName} placeholder="e.g. Oatmeal" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="label"><span class="label-text">Calories</span></label>
+              <input type="number" class="input input-bordered w-full" bind:value={mealCalories} min="0" />
+            </div>
+            <div>
+              <label class="label"><span class="label-text">Protein (g)</span></label>
+              <input type="number" class="input input-bordered w-full" bind:value={mealProtein} min="0" />
+            </div>
+            <div>
+              <label class="label"><span class="label-text">Carbs (g)</span></label>
+              <input type="number" class="input input-bordered w-full" bind:value={mealCarbs} min="0" />
+            </div>
+            <div>
+              <label class="label"><span class="label-text">Fat (g)</span></label>
+              <input type="number" class="input input-bordered w-full" bind:value={mealFat} min="0" />
+            </div>
+          </div>
+          <button class="btn btn-secondary mt-2" on:click={handleManualSubmit}>Log Manually</button>
+        </div>
+        {/if}
       </div>
     </div>
 
