@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -13,6 +16,17 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
+
+        val localProperties = Properties()
+        val localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) {
+            FileInputStream(localPropsFile).use { localProperties.load(it) }
+        }
+        val watchToken = System.getenv("PROD_WATCH_TOKEN") 
+            ?: localProperties.getProperty("PROD_WATCH_TOKEN") 
+            ?: "missing-token"
+        
+        buildConfigField("String", "PROD_WATCH_TOKEN", "\"$watchToken\"")
     }
 
     signingConfigs {

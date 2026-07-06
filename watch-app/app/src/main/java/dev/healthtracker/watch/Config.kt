@@ -21,7 +21,7 @@ object Config {
 
     // ------- Prod (Cloudflare) -------
     private const val PROD_BACKEND_URL: String = "https://health-api.siddeshwar.com"
-    private const val PROD_WATCH_TOKEN: String = "ab9914c8240fce514ac7128bdcf2052f90b164b17c615d94a4da4c6219bd38be"
+    private val PROD_WATCH_TOKEN: String = BuildConfig.PROD_WATCH_TOKEN
 
     // ------- Resolved -------
     val BACKEND_URL: String get() = if (USE_PROD) PROD_BACKEND_URL else DEV_BACKEND_URL

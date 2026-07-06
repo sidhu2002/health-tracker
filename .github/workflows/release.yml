@@ -25,6 +25,8 @@ jobs:
           cache: 'gradle'
 
       - name: Build APK
+        env:
+          PROD_WATCH_TOKEN: ${{ secrets.PROD_WATCH_TOKEN }}
         run: |
           cd watch-app
           chmod +x ./gradlew
