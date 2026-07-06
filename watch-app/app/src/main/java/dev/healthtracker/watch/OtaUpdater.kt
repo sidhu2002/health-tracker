@@ -23,14 +23,18 @@ object OtaUpdater {
     suspend fun checkAndUpdate(context: Context): String = withContext(Dispatchers.IO) {
         try {
             val client = OkHttpClient()
-            
-            // 1. Fetch latest release from GitHub API
-            Log.d(TAG, "Checking for updates...")
             val apiUrl = "https://api.github.com/repos/$GITHUB_REPO/releases/latest"
-            val request = Request.Builder().url(apiUrl).build()
+            val request = Request.Builder()
+                .url(apiUrl)
+                // Add Accept header to encourage standard API response
+                .addHeader("Accept", "application/vnd.github.v3+json")
+                .build()
             
             val response = client.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext "No updates found (or private repo)."
+            if (!response.isSuccessful) {
+                // Return a specific error string when GitHub API fails
+                return@withContext "Error: GitHub API HTTP ${response.code} - ${response.message}"
+            }
             
             val json = JSONObject(response.body?.string() ?: "")
             val assets = json.getJSONArray("assets")
@@ -89,10 +93,16 @@ object OtaUpdater {
         try {
             val client = OkHttpClient()
             val apiUrl = "https://api.github.com/repos/$GITHUB_REPO/releases/latest"
-            val request = Request.Builder().url(apiUrl).build()
+            val request = Request.Builder()
+                .url(apiUrl)
+                .addHeader("Accept", "application/vnd.github.v3+json")
+                .build()
             
             val response = client.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext false
+            if (!response.isSuccessful) {
+                Log.w(TAG, "isUpdateAvailable: GitHub API failed HTTP ${response.code}")
+                return@withContext false
+            }
             
             val json = JSONObject(response.body?.string() ?: "")
             val createdAtString = json.getString("created_at")

@@ -153,6 +153,9 @@ class MainActivity : ComponentActivity() {
                                             currentStatus = "Downloading update..."
                                             val result = OtaUpdater.checkAndUpdate(applicationContext)
                                             currentStatus = result
+                                            if (result.startsWith("Error")) {
+                                                android.util.Log.e("MainActivity", "OTA Check Error: $result")
+                                            }
                                         }
                                     },
                                     label = { Text("Update App (OTA)", fontWeight = FontWeight.Medium) },
