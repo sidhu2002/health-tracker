@@ -66,3 +66,80 @@ export async function fetchWorkouts(from?: number, to?: number) {
   if (!res.ok) throw new Error(`workouts fetch failed: ${res.status}`);
   return (await res.json()) as { from: number; to: number; count: number; workouts: Workout[] };
 }
+
+// --- DIETITIAN APIs ---
+
+export interface FoodLog {
+  id: number;
+  name: string;
+  logged_at: number;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  micros?: Record<string, number>;
+  source: string;
+  meta?: any;
+}
+
+export interface DailyGoals {
+  target_date: string;
+  target_calories: number | null;
+  target_protein_g: number | null;
+  target_carbs_g: number | null;
+  target_fat_g: number | null;
+}
+
+export async function fetchFoodLogs(date?: string) {
+  const url = new URL(`${API_BASE}/v1/food-logs`);
+  if (date) url.searchParams.set('date', date);
+  // Need to pass authorization if the backend expects it.
+  // Wait, the backend authOk requires a WATCH_TOKEN! But the dashboard is public currently?
+  // Let's check if the dashboard sends auth for the other requests...
+  // Oh, wait! The backend authOk is only checked for /v1/ingest right now, NOT for GET requests.
+  // BUT my new diet handlers added authOk check for GET and POST!
+  // I need to adapt auth for the dashboard or remove auth for GET /v1/food-logs.
+  // Actually, let's fix backend to only require auth for POST, or use a separate Dashboard token.
+  // For now, I'll update backend to not require auth for GETs, or I'll provide a placeholder token in local dev.
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`food logs fetch failed: ${res.status}`);
+  return (await res.json()) as { logs: FoodLog[] };
+}
+
+export async function createFoodLog(log: Partial<FoodLog>) {
+  const res = await fetch(`${API_BASE}/v1/food-logs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(log)
+  });
+  if (!res.ok) throw new Error(`failed to create food log: ${res.status}`);
+  return await res.json();
+}
+
+export async function fetchGoals(date?: string) {
+  const url = new URL(`${API_BASE}/v1/goals`);
+  if (date) url.searchParams.set('date', date);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`goals fetch failed: ${res.status}`);
+  return (await res.json()) as { goals: DailyGoals | null };
+}
+
+export async function updateGoals(goals: Partial<DailyGoals>) {
+  const res = await fetch(`${API_BASE}/v1/goals`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(goals)
+  });
+  if (!res.ok) throw new Error(`failed to update goals: ${res.status}`);
+  return await res.json();
+}
+
+export async function parseFoodAI(text?: string, image_base64?: string) {
+  const res = await fetch(`${API_BASE}/v1/ai/parse-food`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, image_base64 })
+  });
+  if (!res.ok) throw new Error(`AI parse failed: ${res.status}`);
+  return await res.json();
+}

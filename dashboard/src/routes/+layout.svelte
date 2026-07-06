@@ -13,7 +13,7 @@
     <div class="flex-none">
       <ul class="menu menu-horizontal px-1 gap-2">
         <li><a href="/" class="hover:text-primary transition-colors" class:text-primary={$page.url.pathname === '/'} class:font-bold={$page.url.pathname === '/'}>Overview</a></li>
-        <li><a href="/hr" class="hover:text-secondary transition-colors" class:text-secondary={$page.url.pathname === '/hr'} class:font-bold={$page.url.pathname === '/hr'}>Metrics</a></li>
+        <li><a href="/dietitian" class="hover:text-accent transition-colors" class:text-accent={$page.url.pathname === '/dietitian'} class:font-bold={$page.url.pathname === '/dietitian'}>Dietitian</a></li>
       </ul>
     </div>
   </header>

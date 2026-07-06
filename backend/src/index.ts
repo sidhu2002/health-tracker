@@ -6,9 +6,13 @@
 // Prod:
 //   Set WATCH_TOKEN as a real secret and swap the D1 database_id in wrangler.toml.
 
+import { json, authOk, CORS_HEADERS } from "./utils";
+import { handleFoodLogs, handleGoals, handleAIFoodParse } from "./handlers/diet";
+
 export interface Env {
   DB: D1Database;
   WATCH_TOKEN: string;
+  GEMINI_API_KEY: string;
 }
 
 interface SampleIn {
@@ -41,33 +45,6 @@ interface IngestBody {
   samples?: SampleIn[];
   workouts?: WorkoutIn[];
   sleep?: SleepIn[];
-}
-
-const CORS_HEADERS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Max-Age": "86400",
-};
-
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-  });
-}
-
-function timingEq(a: string, b: string): boolean {
-  if (!a || a.length !== b.length) return false;
-  let r = 0;
-  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return r === 0;
-}
-
-function authOk(req: Request, env: Env): boolean {
-  const raw = req.headers.get("authorization") ?? "";
-  const token = raw.replace(/^Bearer\s+/i, "").trim();
-  return timingEq(token, env.WATCH_TOKEN);
 }
 
 async function handleIngest(req: Request, env: Env): Promise<Response> {
@@ -279,6 +256,17 @@ export default {
 
     if (url.pathname === "/v1/summary" && req.method === "GET") {
       return handleSummary(url, env);
+    }
+
+    // Dietician & Nutrition endpoints
+    if (url.pathname === "/v1/food-logs") {
+      return handleFoodLogs(req, url, env);
+    }
+    if (url.pathname === "/v1/goals") {
+      return handleGoals(req, url, env);
+    }
+    if (url.pathname === "/v1/ai/parse-food" && req.method === "POST") {
+      return handleAIFoodParse(req, env);
     }
 
     return json({ error: "not_found", path: url.pathname }, 404);
