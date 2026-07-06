@@ -1,0 +1,1 @@
+fetch('https://generativelanguage.googleapis.com/v1beta/models?key=AIzaSyDhk_mz_OTwdAGiugZdqKQ-wfF-KgqbyNM').then(r=>r.json()).then(console.log).catch(console.error);

@@ -129,7 +129,7 @@ Return the result strictly as a valid JSON object without markdown formatting, m
     contents.push({ parts });
 
     try {
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${env.GEMINI_API_KEY}`;
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`;
         
         const gRes = await fetch(geminiUrl, {
             method: "POST",

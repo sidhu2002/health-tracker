@@ -3,9 +3,9 @@ main = "src/index.ts"
 compatibility_date = "2025-06-01"
 
 # Bind the Worker to a custom domain. Cloudflare provisions SSL automatically.
-routes = [
-  { pattern = "health-api.siddeshwar.com", custom_domain = true }
-]
+# routes = [
+#   { pattern = "health-api.siddeshwar.com", custom_domain = true }
+# ]
 
 # D1 database binding.
 #   Local: wrangler auto-creates a SQLite file under .wrangler/state/ — database_id is ignored.
