@@ -12,6 +12,9 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 
 object OtaUpdater {
     private const val TAG = "OtaUpdater"
@@ -79,6 +82,32 @@ object OtaUpdater {
         } catch (e: Exception) {
             Log.e(TAG, "Update failed", e)
             return@withContext "Error: ${e.localizedMessage}"
+        }
+    }
+
+    suspend fun isUpdateAvailable(context: Context): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val client = OkHttpClient()
+            val apiUrl = "https://api.github.com/repos/$GITHUB_REPO/releases/latest"
+            val request = Request.Builder().url(apiUrl).build()
+            
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) return@withContext false
+            
+            val json = JSONObject(response.body?.string() ?: "")
+            val createdAtString = json.getString("created_at")
+            
+            val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+            format.timeZone = TimeZone.getTimeZone("UTC")
+            val releaseTime = format.parse(createdAtString)?.time ?: 0L
+            
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val installTime = packageInfo.lastUpdateTime
+            
+            return@withContext releaseTime > installTime
+        } catch (e: Exception) {
+            Log.e(TAG, "Update check failed", e)
+            return@withContext false
         }
     }
 }

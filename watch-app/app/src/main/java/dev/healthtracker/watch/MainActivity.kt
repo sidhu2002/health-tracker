@@ -1,6 +1,7 @@
 package dev.healthtracker.watch
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -9,69 +10,82 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.wear.compose.material.Button
+import androidx.wear.compose.foundation.lazy.AutoCenteringParams
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
-import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
-import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
-import androidx.wear.compose.foundation.lazy.AutoCenteringParams
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.graphics.Brush
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.WorkManager
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
 
-    private val requestBodySensors =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            statusUpdate = if (granted) "BODY_SENSORS granted" else "BODY_SENSORS denied"
+    private var currentStatus by mutableStateOf("Initializing...")
+
+    private val requestPermissionsLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+            val sensors = permissions[Manifest.permission.BODY_SENSORS] ?: false
+            val activity = permissions[Manifest.permission.ACTIVITY_RECOGNITION] ?: false
+            
+            if (sensors && activity) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    val bg = ContextCompat.checkSelfPermission(this, "android.permission.BODY_SENSORS_BACKGROUND")
+                    if (bg != PackageManager.PERMISSION_GRANTED) {
+                        requestBgSensorLauncher.launch("android.permission.BODY_SENSORS_BACKGROUND")
+                    } else {
+                        startTracking()
+                    }
+                } else {
+                    startTracking()
+                }
+            } else {
+                currentStatus = "Permissions denied"
+            }
         }
 
-    private val requestBackground =
+    private val requestBgSensorLauncher = 
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            statusUpdate = if (granted) "Background granted" else "Background denied"
+            if (granted) {
+                startTracking()
+            } else {
+                currentStatus = "BG Sensor denied"
+            }
         }
-
-    private val requestActivity =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            statusUpdate = if (granted) "ACTIVITY granted" else "ACTIVITY denied"
-        }
-
-    private var statusUpdate: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Schedule the uploader once. WorkManager de-dupes across launches.
         UploadWorker.schedule(applicationContext)
 
         setContent {
             MaterialTheme {
-                var status by remember { mutableStateOf("Ready to track") }
-                var lastUpload by remember { mutableStateOf("—") }
+                var lastUpload by remember { mutableStateOf("-") }
+                var updateAvailable by remember { mutableStateOf(false) }
                 
                 val listState = rememberScalingLazyListState()
+
+                LaunchedEffect(Unit) {
+                    checkAndRequestPermissions()
+                    // Check for updates conditionally
+                    updateAvailable = OtaUpdater.isUpdateAvailable(applicationContext)
+                }
 
                 Box(
                     modifier = Modifier
@@ -99,7 +113,7 @@ class MainActivity : ComponentActivity() {
                         }
                         item {
                             Text(
-                                text = status,
+                                text = currentStatus,
                                 color = Color.White,
                                 style = MaterialTheme.typography.body2,
                                 textAlign = TextAlign.Center,
@@ -114,68 +128,14 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                         }
-                        item {
-                            Chip(
-                                onClick = {
-                                    requestBodySensors.launch(Manifest.permission.BODY_SENSORS)
-                                    status = "Requesting sensors..."
-                                },
-                                label = { Text("1. Sensors") },
-                                colors = ChipDefaults.primaryChipColors(backgroundColor = Color(0xFF1E88E5)),
-                                modifier = Modifier.fillMaxWidth(0.9f)
-                            )
-                        }
-                        item {
-                            Chip(
-                                onClick = {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        requestBackground.launch("android.permission.BODY_SENSORS_BACKGROUND")
-                                        status = "Requesting background..."
-                                    } else {
-                                        status = "Background sync ready"
-                                    }
-                                },
-                                label = { Text("2. Background") },
-                                colors = ChipDefaults.primaryChipColors(backgroundColor = Color(0xFF1E88E5)),
-                                modifier = Modifier.fillMaxWidth(0.9f)
-                            )
-                        }
-                        item {
-                            Chip(
-                                onClick = {
-                                    requestActivity.launch(Manifest.permission.ACTIVITY_RECOGNITION)
-                                    status = "Requesting activity..."
-                                },
-                                label = { Text("3. Activity") },
-                                colors = ChipDefaults.primaryChipColors(backgroundColor = Color(0xFF1E88E5)),
-                                modifier = Modifier.fillMaxWidth(0.9f)
-                            )
-                        }
+                        
                         item {
                             Chip(
                                 onClick = {
                                     lifecycleScope.launch {
-                                        status = "Starting listener..."
-                                        try {
-                                            HealthCollector.registerPassive(applicationContext)
-                                            status = "Tracking Active"
-                                        } catch (e: Exception) {
-                                            status = "Error: ${e.message}"
-                                        }
-                                    }
-                                },
-                                label = { Text("Start Tracking") },
-                                colors = ChipDefaults.primaryChipColors(backgroundColor = Color(0xFF00C853)),
-                                modifier = Modifier.fillMaxWidth(0.9f)
-                            )
-                        }
-                        item {
-                            Chip(
-                                onClick = {
-                                    lifecycleScope.launch {
-                                        status = "Syncing now..."
+                                        currentStatus = "Syncing now..."
                                         val ok = UploadWorker.runNow(applicationContext)
-                                        status = if (ok) "Sync queued!" else "Sync failed"
+                                        currentStatus = if (ok) "Sync queued!" else "Sync failed"
                                         lastUpload = "Just now"
                                     }
                                 },
@@ -184,20 +144,24 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.fillMaxWidth(0.9f)
                             )
                         }
-                        item {
-                            Chip(
-                                onClick = {
-                                    lifecycleScope.launch {
-                                        status = "Checking for update..."
-                                        val result = OtaUpdater.checkAndUpdate(applicationContext)
-                                        status = result
-                                    }
-                                },
-                                label = { Text("Update App (OTA)", fontWeight = FontWeight.Medium) },
-                                colors = ChipDefaults.primaryChipColors(backgroundColor = Color(0xFFD84315)),
-                                modifier = Modifier.fillMaxWidth(0.9f).padding(bottom = 8.dp)
-                            )
+                        
+                        if (updateAvailable) {
+                            item {
+                                Chip(
+                                    onClick = {
+                                        lifecycleScope.launch {
+                                            currentStatus = "Downloading update..."
+                                            val result = OtaUpdater.checkAndUpdate(applicationContext)
+                                            currentStatus = result
+                                        }
+                                    },
+                                    label = { Text("Update App (OTA)", fontWeight = FontWeight.Medium) },
+                                    colors = ChipDefaults.primaryChipColors(backgroundColor = Color(0xFFD84315)),
+                                    modifier = Modifier.fillMaxWidth(0.9f).padding(top = 8.dp, bottom = 8.dp)
+                                )
+                            }
                         }
+
                         item {
                             Text(
                                 text = "Version: 2.0.0-OTA-Test",
@@ -208,6 +172,38 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private fun checkAndRequestPermissions() {
+        val sensors = ContextCompat.checkSelfPermission(this, Manifest.permission.BODY_SENSORS) == PackageManager.PERMISSION_GRANTED
+        val activity = ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
+        
+        if (!sensors || !activity) {
+            requestPermissionsLauncher.launch(arrayOf(Manifest.permission.BODY_SENSORS, Manifest.permission.ACTIVITY_RECOGNITION))
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val bg = ContextCompat.checkSelfPermission(this, "android.permission.BODY_SENSORS_BACKGROUND") == PackageManager.PERMISSION_GRANTED
+                if (!bg) {
+                    requestBgSensorLauncher.launch("android.permission.BODY_SENSORS_BACKGROUND")
+                } else {
+                    startTracking()
+                }
+            } else {
+                startTracking()
+            }
+        }
+    }
+
+    private fun startTracking() {
+        lifecycleScope.launch {
+            currentStatus = "Starting listener..."
+            try {
+                HealthCollector.registerPassive(applicationContext)
+                currentStatus = "Tracking Active"
+            } catch (e: Exception) {
+                currentStatus = "Error: ${e.message}"
             }
         }
     }
