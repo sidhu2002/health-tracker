@@ -4,7 +4,7 @@
 //     (set in Cloudflare Pages env vars or a local .env.production file).
 //   - Fallback: same-origin (works if API is proxied by Pages Functions in future).
 
-const VITE_API_BASE = (import.meta as { env: { VITE_API_BASE?: string } }).env.VITE_API_BASE ?? '';
+const VITE_API_BASE = (import.meta as { env: { VITE_API_BASE?: string } }).env.VITE_API_BASE || 'https://health-api.siddeshwar.com';
 
 export const API_BASE: string = (() => {
   if (typeof window === 'undefined') return VITE_API_BASE;
