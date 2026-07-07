@@ -9,6 +9,8 @@ import android.speech.RecognizerIntent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,9 +74,8 @@ class MainActivity : ComponentActivity() {
 
     private fun processSpeech(text: String): Boolean {
         val http = okhttp3.OkHttpClient()
-        val mediaType = okhttp3.MediaType.parse("application/json")
-        val body = org.json.JSONObject().put("text", text).toString()
-            .let { okhttp3.RequestBody.create(mediaType, it) }
+        val mediaType = "application/json".toMediaType()
+        val body = org.json.JSONObject().put("text", text).toString().toRequestBody(mediaType)
             
         val req1 = okhttp3.Request.Builder()
             .url("${Config.BACKEND_URL}/v1/ai/parse-food")
@@ -98,7 +99,7 @@ class MainActivity : ComponentActivity() {
         val req2 = okhttp3.Request.Builder()
             .url("${Config.BACKEND_URL}/v1/food-logs")
             .addHeader("Authorization", "Bearer ${Config.WATCH_TOKEN}")
-            .post(okhttp3.RequestBody.create(mediaType, result.toString()))
+            .post(result.toString().toRequestBody(mediaType))
             .build()
 
         val res2 = http.newCall(req2).execute()
