@@ -12,6 +12,15 @@ export const API_BASE: string = (() => {
   return VITE_API_BASE;
 })();
 
+function getAuthHeaders(extra: Record<string, string> = {}) {
+  const headers: Record<string, string> = { ...extra };
+  if (typeof localStorage !== 'undefined') {
+    const token = localStorage.getItem('WATCH_TOKEN');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 export interface Sample {
   ts: number;
   value: number;
@@ -93,15 +102,8 @@ export interface DailyGoals {
 export async function fetchFoodLogs(date?: string) {
   const url = new URL(`${API_BASE}/v1/food-logs`);
   if (date) url.searchParams.set('date', date);
-  // Need to pass authorization if the backend expects it.
-  // Wait, the backend authOk requires a WATCH_TOKEN! But the dashboard is public currently?
-  // Let's check if the dashboard sends auth for the other requests...
-  // Oh, wait! The backend authOk is only checked for /v1/ingest right now, NOT for GET requests.
-  // BUT my new diet handlers added authOk check for GET and POST!
-  // I need to adapt auth for the dashboard or remove auth for GET /v1/food-logs.
-  // Actually, let's fix backend to only require auth for POST, or use a separate Dashboard token.
-  // For now, I'll update backend to not require auth for GETs, or I'll provide a placeholder token in local dev.
-  const res = await fetch(url);
+  // GET requests are not auth-gated, but we can pass headers safely
+  const res = await fetch(url, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error(`food logs fetch failed: ${res.status}`);
   return (await res.json()) as { logs: FoodLog[] };
 }
@@ -109,7 +111,7 @@ export async function fetchFoodLogs(date?: string) {
 export async function createFoodLog(log: Partial<FoodLog>) {
   const res = await fetch(`${API_BASE}/v1/food-logs`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(log)
   });
   if (!res.ok) throw new Error(`failed to create food log: ${res.status}`);
@@ -119,7 +121,7 @@ export async function createFoodLog(log: Partial<FoodLog>) {
 export async function fetchGoals(date?: string) {
   const url = new URL(`${API_BASE}/v1/goals`);
   if (date) url.searchParams.set('date', date);
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error(`goals fetch failed: ${res.status}`);
   return (await res.json()) as { goals: DailyGoals | null };
 }
@@ -127,7 +129,7 @@ export async function fetchGoals(date?: string) {
 export async function updateGoals(goals: Partial<DailyGoals>) {
   const res = await fetch(`${API_BASE}/v1/goals`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(goals)
   });
   if (!res.ok) throw new Error(`failed to update goals: ${res.status}`);
@@ -137,7 +139,7 @@ export async function updateGoals(goals: Partial<DailyGoals>) {
 export async function parseFoodAI(text?: string, image_base64?: string) {
   const res = await fetch(`${API_BASE}/v1/ai/parse-food`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ text, image_base64 })
   });
   if (!res.ok) throw new Error(`AI parse failed: ${res.status}`);

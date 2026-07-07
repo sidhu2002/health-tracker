@@ -26,6 +26,7 @@ export async function handleFoodLogs(req: Request, url: URL, env: Env): Promise<
     }
 
     if (req.method === "POST") {
+        if (!authOk(req, env)) return json({ error: "unauthorized" }, 401);
         const body: any = await req.json();
         if (!body.name || typeof body.calories !== "number") return json({ error: "invalid_body" }, 400);
 
@@ -60,6 +61,7 @@ export async function handleGoals(req: Request, url: URL, env: Env): Promise<Res
     }
 
     if (req.method === "POST") {
+        if (!authOk(req, env)) return json({ error: "unauthorized" }, 401);
         const body: any = await req.json();
         const targetDate = body.target_date ?? new Date().toISOString().split("T")[0];
         

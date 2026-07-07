@@ -1,9 +1,11 @@
 package dev.healthtracker.watch
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,6 +40,70 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
 
     private var currentStatus by mutableStateOf("Initializing...")
+
+    private val speechLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            if (spokenText != null) {
+                currentStatus = "Parsing: $spokenText..."
+                lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    try {
+                        val ok = processSpeech(spokenText)
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            currentStatus = if (ok) "Meal logged!" else "Failed to parse meal"
+                        }
+                    } catch (e: Exception) {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            currentStatus = "Error: ${e.message}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun promptSpeech() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "What did you eat?")
+        }
+        speechLauncher.launch(intent)
+    }
+
+    private fun processSpeech(text: String): Boolean {
+        val http = okhttp3.OkHttpClient()
+        val mediaType = okhttp3.MediaType.parse("application/json")
+        val body = org.json.JSONObject().put("text", text).toString()
+            .let { okhttp3.RequestBody.create(mediaType, it) }
+            
+        val req1 = okhttp3.Request.Builder()
+            .url("${Config.BACKEND_URL}/v1/ai/parse-food")
+            .addHeader("Authorization", "Bearer ${Config.WATCH_TOKEN}")
+            .post(body)
+            .build()
+
+        val res1 = http.newCall(req1).execute()
+        if (!res1.isSuccessful) return false
+        
+        val aiJson = org.json.JSONObject(res1.body!!.string())
+        if (!aiJson.optBoolean("ok")) return false
+        
+        val result = aiJson.getJSONObject("result")
+        result.put("source", "watch_voice")
+        result.put("logged_at", System.currentTimeMillis())
+        
+        val meta = org.json.JSONObject().put("explanation", result.optString("explanation", ""))
+        result.put("meta", meta)
+
+        val req2 = okhttp3.Request.Builder()
+            .url("${Config.BACKEND_URL}/v1/food-logs")
+            .addHeader("Authorization", "Bearer ${Config.WATCH_TOKEN}")
+            .post(okhttp3.RequestBody.create(mediaType, result.toString()))
+            .build()
+
+        val res2 = http.newCall(req2).execute()
+        return res2.isSuccessful
+    }
 
     private val requestPermissionsLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
@@ -128,6 +194,18 @@ class MainActivity : ComponentActivity() {
                                 color = Color.Gray,
                                 style = MaterialTheme.typography.caption2,
                                 modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
+                        
+                        item {
+                            Chip(
+                                onClick = {
+                                    promptSpeech()
+                                    currentStatus = "Listening..."
+                                },
+                                label = { Text("Voice Log Food") },
+                                colors = ChipDefaults.primaryChipColors(backgroundColor = Color(0xFF00796B)),
+                                modifier = Modifier.fillMaxWidth(0.9f)
                             )
                         }
                         
