@@ -1,5 +1,5 @@
 import { Env } from "../index";
-import { json } from "../utils";
+import { json, authOk } from "../utils";
 
 export async function handleFoodLogs(req: Request, url: URL, env: Env): Promise<Response> {
     if (req.method === "GET") {
@@ -86,6 +86,8 @@ export async function handleGoals(req: Request, url: URL, env: Env): Promise<Res
 }
 
 export async function handleAIFoodParse(req: Request, env: Env): Promise<Response> {
+    if (!authOk(req, env)) return json({ error: "unauthorized" }, 401);
+    
     const body: any = await req.json();
     const { text, image_base64 } = body;
 
